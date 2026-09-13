@@ -1,4 +1,4 @@
-# Optional Windows integration check: writes only a unique temporary HKCU subkey and removes it.
+﻿# 可选 Windows 集成验证：仅写入唯一的临时 HKCU 子键，检查值与类型后清理。
 $ErrorActionPreference='Stop'
 . (Join-Path (Split-Path -Parent $PSScriptRoot) 'scripts/TerminalState.ps1')
 $subKey='Software\powershelldome-test-'+[guid]::NewGuid().ToString('N')

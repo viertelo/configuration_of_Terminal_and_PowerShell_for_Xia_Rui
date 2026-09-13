@@ -1,2 +1,2 @@
--- Installer replaces this template with locally generated Starship initialization.
--- An undeployed template deliberately does nothing: never resolve programs from the current directory.
+-- 安装器会用本机 Starship 生成的初始化代码替换这个占位模板。
+-- 未部署模板不执行任何操作，避免从当前目录查找并运行同名程序。

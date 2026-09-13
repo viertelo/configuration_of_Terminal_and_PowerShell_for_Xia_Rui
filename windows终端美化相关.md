@@ -1,283 +1,110 @@
-# Windows 全终端美化与增强配置手册
+# Windows 终端美化与使用说明
 
-本项目保存可维护的终端与 Shell 配置源文件，支持 **Windows Terminal**、**PowerShell 7**、**CMD (Command Prompt)** 与 **Windows PowerShell 5.1** 的统一美化与功能增强。
+本文件说明当前配置的外观、主题、快捷键和常见问题。项目截图见 [README](README.md#项目展示截图)，安装与恢复操作见[部署与回退](部署与回退.md)。
 
-终端全局配色采用 **Catppuccin Mocha**，集成专属背景壁纸、高质感亚克力磨砂透明、`JetBrainsMono Nerd Font` 编程字体、`Fastfetch` 专属 ASCII 硬件横幅、`Oh My Posh` 极美主题、以及 `Clink + Starship` 的现代 CMD 终端环境。
+## 外观配置与展示截图
 
----
+[settings.json](settings.json) 是 Windows Terminal 设置模板，当前 `profiles.defaults` 使用 Catppuccin Mocha、`opacity: 80`、`useAcrylic: true`，光标为竖线。字体大小为 11，行高为 `1.2`，字体候选为 `JetBrainsMono NFM, JetBrainsMono NF, JetBrainsMono Nerd Font Mono, Cascadia Code`。各 Profile 可覆盖默认值，实际效果也受 Terminal 版本、系统透明效果和字体安装影响。
 
-## 📁 项目结构与配置清单
+模板当前仍含作者本机的背景路径：
 
-| 路径 / 文件 | 用途与定位 |
-| --- | --- |
-| [`settings.json`](file:///c:/XMWJJ/powershelldome/settings.json) | Windows Terminal 全局配置文件（配色、透明度、字体、Profile 入口） |
-| [`Microsoft.PowerShell_profile.ps1`](file:///c:/XMWJJ/powershelldome/Microsoft.PowerShell_profile.ps1) | PowerShell 7 启动增强脚本（主题、Fastfetch、图标、快捷键、实用函数） |
-| [`cmd/autorun.cmd`](file:///c:/XMWJJ/powershelldome/cmd/autorun.cmd) | CMD 自动初始化脚本（UTF-8 编码、Doskey 现代化别名、Clink 挂载） |
-| [`cmd/clink/starship.lua`](file:///c:/XMWJJ/powershelldome/cmd/clink/starship.lua) | Clink 扩展脚本：在 CMD 中加载 Starship 赛博朋克渐变提示符 |
-| [`cmd/clink/settings.lua`](file:///c:/XMWJJ/powershelldome/cmd/clink/settings.lua) | Clink 补全体验增强：历史预测、输入语法着色、模糊匹配 |
-| [`cmd/Install-CmdConfiguration.ps1`](file:///c:/XMWJJ/powershelldome/cmd/Install-CmdConfiguration.ps1) | CMD 自动化部署/卸载脚本（写入当前用户 AutoRun 注册表） |
-| [`Deploy-TerminalConfiguration.ps1`](file:///c:/XMWJJ/powershelldome/Deploy-TerminalConfiguration.ps1) | **一键部署脚本**：自动创建校验快照，并部署 Terminal、PowerShell、CMD |
-| [`Restore-TerminalConfiguration.ps1`](file:///c:/XMWJJ/powershelldome/Restore-TerminalConfiguration.ps1) | **一键无损回退脚本**：按字节恢复部署前的系统环境，支持 `-IncludeCmd` |
-| [`tests/Verify-Configuration.ps1`](file:///c:/XMWJJ/powershelldome/tests/Verify-Configuration.ps1) | 静态语法、JSON 合法性、GUID、别名与依赖回退自检 |
-| [`tests/Verify-Deployment.ps1`](file:///c:/XMWJJ/powershelldome/tests/Verify-Deployment.ps1) | 独立沙箱部署与回退完整性测试 |
-| [`IDE与开发工具集成指南.md`](file:///c:/XMWJJ/powershelldome/IDE与开发工具集成指南.md) | **IDE 集成专用指南**：VS Code 与 IntelliJ IDEA 内置终端字体、编码与环境配置 |
-| [`backups/system-audit-20260907-082932/`](file:///c:/XMWJJ/powershelldome/backups/system-audit-20260907-082932/) | **系统原始配置快照**（包含原终端设置、Profiles、Clink、Fastfetch、NuShell 等） |
+```json
+{
+  "backgroundImage": "%USERPROFILE%\\Pictures\\壁纸文件\\dde5a5767u6579.jpg",
+  "backgroundImageOpacity": 0.4,
+  "backgroundImageStretchMode": "uniformToFill"
+}
+```
 
----
+这是相关字段示例，不是完整 settings.json。部署到其他电脑前，将 `backgroundImage` 换成自己的图片路径，或删除该字段以使用纯色 / 亚克力背景。README 的 assets 图片是项目展示截图，不是脚本自动使用的壁纸。通过 Terminal 的设置 → 默认值或某个配置文件 → 外观选择背景图片，也可以进行同样调整；[官方外观配置说明](https://learn.microsoft.com/en-us/windows/terminal/customize-settings/profile-appearance)解释了相关字段。
 
-## 🎨 视觉与体验特性
+## 字体
 
-### 1. Windows Terminal 外观
-- **配色方案**：`Catppuccin Mocha`（底色 `#1E1E2E`，青蓝/粉紫/金黄点缀）。
-- **字体**：`JetBrainsMono Nerd Font Mono`，字号 `11`，行高系数 `1.2`，完美支持所有图标与连字。
-- **背景与亚克力**：支持亚克力毛玻璃模糊（`useAcrylic: true`，窗口不透明度 `80%`），并支持叠加自定义背景壁纸（推荐透明度 `0.4`，拉伸模式 `uniformToFill`；详见下方 [FAQ 与最佳实践](#-核心逻辑说明与配置最佳实践-faq)）。
-- **光标风格**：竖线光标（`bar`），更加现代化。
-- **快捷键**：保留原生 `Ctrl+C` / `Ctrl+V`，`Alt+Shift+D` 自动分屏，`Ctrl+Shift+F` 快速搜索。
+```powershell
+# 从项目目录安装 48 个本地 TTF，默认作用于当前用户。
+powershell.exe -NoProfile -File .\Install-Fonts.ps1
+```
 
-### 2. PowerShell 7 体验
-- **提示符**：默认加载与 Terminal 深度契合的 `catppuccin_mocha.omp.json` 主题，平滑显示当前目录、Git 分支与状态、执行耗时。
-- **专属启动横幅**：交互模式下自动呈现 Fastfetch 专属 ASCII 图标与硬件指标（CPU、内存、硬盘占用）；非交互和重定向时自动静默。
-- **文件夹图标**：集成 `Terminal-Icons`，`Get-ChildItem` 自动渲染精美文件/目录类型图标。
-- **智能预测与高亮**：PSReadLine 金黄/青蓝配色，开启历史记录行内预测；输入前缀后可按 `↑` / `↓` 搜索历史命令；`Ctrl+Z` 撤销输入。
-- **现代化导航与模糊检索**：
-  - `z 目录名`：由 `zoxide` 瞬间跳转。
-  - `Alt+Z`：调出 `zoxide` 交互式模糊检索跳转。
-  - `Ctrl+F`：使用 `fzf` 交互式搜索并插入文件路径。
-  - `Ctrl+R`：使用 `fzf` 搜索历史执行命令。
+等宽终端优先选择 `JetBrainsMono NFM`，也可选择已安装的 `JetBrainsMono NF`；`NFP` 为比例版本，不作为等宽对齐的首选。普通 JetBrains Mono 不包含同一套 Nerd Font 图标。安装器会尝试注册并发送字体变更通知；如果应用还看不到字体，关闭并重开应用，再检查 Windows 字体设置。多级候选字体不能保证所有字体缺失提示都不会出现。
 
-### 3. CMD (命令提示符) 体验
-- **UTF-8 编码**：启动自动生效 `chcp 65001`，彻底解决中文乱码与 Nerd Font 图标方框问题。
-- **现代化 CLI 别名 (Doskey)**：
-  - `ls` / `ll` / `la`：自动映射至 `eza` 彩色图标排版。
-  - `cat`：自动映射至 `bat` 语法高亮文件查看。
-  - `grep`：映射至 `rg` (ripgrep) 高速正则检索。
-  - `clear`：清屏。
-  - `g`, `gst`, `gco`, `gb`, `glog`, `gpull`, `gps`：常用 Git 命令别名。
-- **Clink 赋能**：集成 `Clink 1.8.8`，实现类 Bash 的 Tab 补全、历史上下翻阅、输入着色。
-- **Starship 提示符**：挂载赛博朋克霓虹渐变提示符，与 PowerShell 体验相得益彰。
+独立字体脚本只读取本地 `fonts/`，目录缺失或没有 TTF 时会报错。工具安装中的字体分支另有包管理器 / 下载回退，不能将两者混为一谈。IDE 需要单独选择终端字体，见[IDE 指南](IDE与开发工具集成指南.md)。
 
----
+## PowerShell 主题与环境开关
 
-## 💡 核心逻辑说明与配置最佳实践 (FAQ)
+PS7 和 PS5.1 安装后共用同一份 Profile 源码，默认 `random`。随机主题从本地主题目录抽取，每次交互加载都可能变化，也可能重复；数量由实际安装的 Oh My Posh 主题库决定。`fixed` 默认尝试 Catppuccin Mocha，`starship` 使用 Starship。
 
-### Q1: 运行安装脚本时，Windows Terminal 会自动同时安装吗？
-**答：不会。**
-- **脚本设计职责**：本项目的安装脚本（如 [`Install-All.ps1`](file:///c:/XMWJJ/powershelldome/Install-All.ps1)、[`Install-PowerShell7.ps1`](file:///c:/XMWJJ/powershelldome/Install-PowerShell7.ps1)）定位为**“环境配置与美化部署”**，而非宿主分发工具。
-- **执行逻辑**：脚本在安装阶段会自动检测当前系统中是否已有 Windows Terminal 的安装目录：
-  - 若检测到已安装，会提示并注入深度定制的 [`settings.json`](file:///c:/XMWJJ/powershelldome/settings.json)（配色、字体、快捷键、亚克力等）；
-  - 若未检测到（如未安装 Terminal 的纯净环境），脚本会跳过 Terminal 配置，继续配置原生控制台（PowerShell / CMD / NuShell 等依然生效）。
-- **如何提前安装 Windows Terminal**：
-  - **Windows 11**：出厂自带，无需手动安装。
-  - **Windows 10 / Server**：推荐提前安装以获取最佳体验：
-    ```powershell
-    winget install Microsoft.WindowsTerminal
-    ```
-    或直接前往 **Microsoft Store** 搜索 `Windows Terminal` 安装。
-
-### Q2: 终端背景图片是否需要备份/打包到项目文件内？为什么推荐用户自行配置？
-**答：强烈推荐由用户在 Terminal 图形界面中自行配置，不需要也不建议强行打包在项目中。**
-原因如下：
-1. **避免绝对路径跨机失效**：每个用户的计算机用户名和文件目录各异，在 `settings.json` 中写死特定路径（如 `%USERPROFILE%\Pictures\壁纸文件\...`）在其他电脑上会导致路径悬空或失效。
-2. **审美与隐私高度个性化**：背景壁纸属于非常主观的个人视觉偏好（动漫、极简、赛博朋克、纯黑等），通用项目不宜强行绑定特定图片。
-3. **Windows Terminal 原生图形界面极简易用**：自带直观可视化设置面板，支持实时无缝预览，操作仅需数秒。
-4. **无图状态已有顶级质感**：项目已预置 Catppuccin Mocha 顶级暗色主题与 `useAcrylic: true`（80% 窗口不透明度），在没有背景壁纸时，会直接呈现通透深邃的亚克力磨砂毛玻璃黑曜石效果，极度耐看。
-5. **保持 Git 仓库轻量**：避免将数兆至数十兆的二进制大图片放入 Git 历史。
-
-#### 🖼️ 背景壁纸配置三步指引：
-1. 打开 Windows Terminal，按快捷键 <kbd>Ctrl</kbd> + <kbd>,</kbd> 打开 **设置**；
-2. 在左侧菜单点击 **「默认值」**（全局生效）或选择特定 Shell（如 **「PowerShell」**），切换到顶部 **「外观」** 选项卡；
-3. 向下滚动到 **「背景图像」** 区域：
-   - 点击 **「浏览」** 选择您的本地图片；
-   - **背景图像拉伸模式**：推荐选择 **均匀填满 (uniformToFill)**；
-   - **背景图像不透明度**：推荐调节为 **`0.35` ~ `0.45`**（既能清晰展现壁纸美感，又不会干扰命令行文字阅读）；
-   - 点击右下角 **「保存」** 即可实时生效！
-
-### Q3: 安装 MSYS2 后，Windows Terminal 下拉菜单没有 MSYS2，脚本会自动补全吗？
-**答：脚本会自动为您补全！**
-- **原生缺失原因**：Windows Terminal 官方默认只会动态探测 WSL、PowerShell Core、Azure 与 VS 开发者提示符；而 MSYS2 官方安装程序**并不会主动向 Windows Terminal 注入配置**，因此独立安装 MSYS2 后 Terminal 下拉列表默认找不到它。
-- **本项目的双重自动注册机制**：
-  1. **动态智能注入**：只要运行 [`Install-MSYS2.ps1`](file:///c:/XMWJJ/powershelldome/Install-MSYS2.ps1)（或总装 `Install-All.ps1 -All`），脚本会自动扫描本地 Terminal 的 `settings.json`；若未包含 MSYS2，会自动生成一条 `MSYS2 UCRT64` 配置项并追加到 `profiles.list` 中。
-  2. **项目完整模板覆盖**：若应用了项目自带的 [`settings.json`](file:///c:/XMWJJ/powershelldome/settings.json)，该配置中已预先内置了 5 大 MSYS2 子环境（MSYS、UCRT64、CLANG64、MINGW64、MINGW32），带独立图标与启动参数。
-- **自定义安装路径支持**：若您的 MSYS2 安装在非默认目录（非 `C:\msys64`），只需在执行安装脚本时传参：
-  ```powershell
-  pwsh -File .\Install-MSYS2.ps1 -Msys2InstallPath "D:\Tools\msys64"
-  ```
-  脚本会自动将实际存在的物理路径（如 `D:\Tools\msys64\msys2_shell.cmd`）写入 Terminal 配置中。
-
-### Q4: 启动 Windows Terminal 弹窗提示“找不到所选字体”或“缺少字体”？
-**答：这是因为 Nerd Fonts v3+ 字体家族名变更（实际注册为 `JetBrainsMono NFM` 或 `JetBrainsMono NF`）或字体尚未安装注册所致。**
-- **自适应回退**：项目最新 [`settings.json`](file:///c:/XMWJJ/powershelldome/settings.json) 已将字体配置升级为多级回退链：`"JetBrainsMono NFM, JetBrainsMono NF, JetBrainsMono Nerd Font Mono, Cascadia Code"`，自动优先匹配当前系统安装的 Nerd Font 等宽版（NFM），若均未安装则平滑回退至系统内置代码字体，彻底避免弹窗警告。
-- **离线一键安装**：运行 `pwsh -File .\Install-Fonts.ps1`，脚本会自动将项目内置 `fonts/` 目录中的 48 款字体复制注册到系统，零网络依赖且支持进程占用安全跳过。
-- **自动兜底**：若离线目录缺失，安装脚本亦内置 CDN 直连兜底，自动从高速镜像下载 `JetBrainsMono.zip` 并解压注册到系统字体库。
-- **手动安装**：若需手动安装，前往 [Nerd Fonts 官方发布页](https://github.com/ryanoasis/nerd-fonts/releases) 下载 `JetBrainsMono.zip`，解压所有 `.ttf` 文件，全选并右键选择 **“为所有用户安装”**，然后在 Windows Terminal 设置中选择 `JetBrainsMono NFM` 即可。
-
-### Q5: 打开 NuShell 标签或启动时提示错误 `[出现错误 2147942402 (0x80070002) (启动“nu.exe”时)]`？
-**答：这是因为尚未安装 NuShell 核心程序。**
-- **根因**：`.\Install-All.ps1` 默认安装 PowerShell 7、Windows PowerShell 5.1 与 CMD 核心环境。若未添加 `-All` 或 `-IncludeNuShell` 参数，NuShell 不会被自动安装。
-- **动态自愈**：最新版本部署逻辑会在写入 Windows Terminal 设置时自动检测，若未检测到 `nu.exe`，会自动将该标签设为 `"hidden": true` 隐藏，避免误点报错。
-- **一键安装**：若您希望体验 NuShell，只需在终端中运行：
-  ```powershell
-  pwsh -File .\Install-NuShell.ps1
-  # 或重新运行带 -All 的总装脚本：
-  # pwsh -File .\Install-All.ps1 -All
-  ```
-  安装完成后，Windows Terminal 将自动解除隐藏并激活 NuShell 入口。
-
-### Q6: 终端提示“因为在此系统上禁止运行脚本”或“是否要运行来自此不可信发布者的软件?”？
-**答：这是 Windows 系统的执行策略与 Mark of the Web (Zone.Identifier) 机制所致。**
-- **自愈解决**：最新版安装脚本在执行时会自动将 `CurrentUser` 脚本执行策略调整为 `RemoteSigned` 并写入注册表，且自动对 `Modules` 目录执行 `Unblock-File`。
-- **手动放行命令**：
-  ```powershell
-  Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned -Force
-  Get-ChildItem -Path "$HOME\Documents\WindowsPowerShell\Modules" -Recurse | Unblock-File
-  ```
-
----
-
-## ⚡ 常用命令与操作速查
-
-| 操作场景 | 推荐命令 / 快捷键 | 依赖说明 |
+| 环境变量 | 未设置时的行为 | 可用设置 |
 | --- | --- | --- |
-| **彩色目录 / 含权限隐藏项** | `ll` / `la` | 调用 `eza`，缺失时自动降级原生 |
-| **高亮查看文件内容** | `catc README.md` (PS7) / `cat README.md` (CMD) | 调用 `bat`，缺失时自动降级 |
-| **智能路径跳转** | `z <关键词>` | 需要 `zoxide` |
-| **交互式目录选择** | `Alt+Z` | 需要 `zoxide` + `fzf` |
-| **历史命令模糊检索** | `Ctrl+R` | 需要 `fzf` + `PSFzf` (PS7) / Clink (CMD) |
-| **交互式文件选择** | `Ctrl+F` | 需要 `fzf` + `PSFzf` |
-| **快速撤销输入** | `Ctrl+Z` | PSReadLine / Clink |
-| **新建并进入目录** | `mkcd <新目录路径>` | 内置实用函数 |
-| **查找当前目录下大文件** | `Find-LargeFiles -TopN 10` | 内置实用函数 |
-| **重新加载 PowerShell 配置** | `Update-Profile` | 内置实用函数 |
-| **编辑 Profile 脚本** | `Edit-Profile` | 自动调用 VSCode / Notepad |
-| **系统环境自检** | `Test-Environment` | 自动检查工具链与模块完备度 |
-| **Git 便捷操作** | `gst`、`gco <分支>`、`gb -a`、`glog`、`gpull`、`gps` | 内置别名与函数 |
+| `POWERSHELL_THEME_MODE` | 随机主题（安装器可写入其他默认值） | `random` / `fixed` / `starship` |
+| `POWERSHELL_POSH_THEME` | 使用模式对应的候选主题 | 固定模式下可指定本地 `.omp.json` 绝对路径；`starship` 可切换引擎 |
+| `POWERSHELL_PROFILE_MINIMAL` | 按交互环境判断是否完整初始化 | `1` 跳过提示符和 UI 集成 |
+| `POWERSHELL_PROFILE_BANNER` | 开启 Fastfetch 横幅 | `0` 关闭 |
+| `POWERSHELL_PROFILE_TIPS` | 开启工具提示卡与主题名称输出 | `0` 关闭 |
+| `POWERSHELL_PROFILE_ICONS` | 导入 Terminal-Icons（可用时） | `0` 关闭 |
+| `POWERSHELL_PROFILE_VFOX` | 不自动激活 vfox | `1` 自动激活；也可手动 `Enable-Vfox` |
+| `POSH_THEMES_PATH` | 优先使用用户 `oh-my-posh-themes` 目录 | 提供额外本地主题路径 |
 
----
-
-## 🛠️ 个性化定制变量 (PowerShell 7)
-
-在您的 `$PROFILE` 中（或在开窗前设置环境变量），可以通过以下开关随心定制：
+当前源码未读取 `POWERSHELL_PREDICTION_VIEW`。预测显示由 PSReadLine 可用参数决定，当前设置为 `InlineView`；不要依赖不存在的开关。
 
 ```powershell
-# 1. 启动横幅（默认 1 启用，设为 0 禁用）
-$env:POWERSHELL_PROFILE_BANNER = '1'
-
-# 2. Terminal-Icons 图标（默认 1 启用，设为 0 可实现极致毫秒级冷启动）
-$env:POWERSHELL_PROFILE_ICONS = '1'
-
-# 3. vfox 环境管理器（默认 1 启用，设为 0 禁用）
-$env:POWERSHELL_PROFILE_VFOX = '1'
-
-# 4. 指定 Oh My Posh 主题（指定存在的本地 .omp.json 文件绝对路径）
-$env:POWERSHELL_POSH_THEME = "$env:USERPROFILE\oh-my-posh-themes\catppuccin_mocha.omp.json"
-
-# 5. PSReadLine 预测显示模式（可选 InlineView 行内 / ListView 列表）
-$env:POWERSHELL_PREDICTION_VIEW = 'InlineView'
+# 当前会话中切换，再加载 Profile；变量只在本进程和子进程继承。
+$env:POWERSHELL_THEME_MODE = 'fixed'
+$env:POWERSHELL_POSH_THEME = Join-Path $env:USERPROFILE 'oh-my-posh-themes/catppuccin_mocha.omp.json'
+$env:POWERSHELL_PROFILE_BANNER = '0'
+$env:POWERSHELL_PROFILE_TIPS = '0'
+. $PROFILE
 ```
 
----
+若需要新开的终端持续使用某个设置，将对应赋值放在个人 Profile 的初始化之前，或设置用户环境变量后重启 Terminal / IDE。已打开的父进程可能仍持有旧环境；从当前 Shell 启动的子进程会继承当前值。重新运行安装或部署可能覆盖手工修改的 Profile。用最小模式重新加载也不会自动卸载当前会话已经加载的提示符、模块或按键处理器，验证最小环境应新开进程。
 
-## 🚀 部署、验证与回退
+## Fastfetch 与中文提示卡
 
-### 1. 运行回归验证
-在部署或修改后，运行本地静态检查：
-```powershell
-pwsh -NoProfile -File .\tests\Verify-Configuration.ps1
-```
+[fastfetch/config.jsonc](fastfetch/config.jsonc) 定义信息模块和配色，[fastfetch/ascii.txt](fastfetch/ascii.txt) 提供字符画。安装辅助函数复制到 `~/.config/fastfetch/` 并将字符画路径写为当前机器实际路径。
 
-### 2. 一键应用部署
-将项目配置部署到本机系统：
-```powershell
-# 预演查看变更目标（不实际修改系统）：
-pwsh -NoProfile -File .\Deploy-TerminalConfiguration.ps1 -WhatIf
+在交互 PowerShell 中运行 `Show-SystemInfo` 可重新查看系统信息，`Show-FeatureTips` 可重新显示工具提示卡。横幅和提示卡分别受 BANNER、TIPS 开关控制；只关闭横幅不会自动隐藏提示卡。提示卡用于快速查看命令，不应把某一行的文字当成完整环境验证；检查依赖使用 `Test-Environment`。
 
-# 真正执行部署：
-pwsh -NoProfile -File .\Deploy-TerminalConfiguration.ps1
-```
-### 3. 五个独立一键安装脚本与包管理容错降级（支持 Win11 / Win10 / Win8.1）
+## 常用操作
 
-针对不同 Shell 环境的个性化需求，项目提供了五个独立的安装配置脚本及一个总装脚本：
+| 场景 | PowerShell 命令 / 快捷键 |
+| --- | --- |
+| 列表、隐藏文件、两层树、三层树 | `ll`、`la`、`lt`、`lt3` |
+| Git 状态目录列表 | `llg` |
+| 高亮预览 | `catc <文件>`；PowerShell `cat` 仍是 Get-Content |
+| 目录跳转 | `z <关键词>`、`zi`、`Alt+Z`（需要 zoxide / fzf） |
+| 搜索历史 / 选择文件 | `Ctrl+R` / `Ctrl+F`（需要 PSReadLine、PSFzf、fzf） |
+| 模糊文件编辑 / 全文检索 | `fv` / `fif <关键词>` |
+| 文件管理 / Git 面板 | `y` / `lg`；可用时 `Ctrl+G` 调用 lazygit |
+| 创建并进入目录 | `mkcd <目录>` |
+| 大文件查找 | `Find-LargeFiles -TopN 10` |
+| 编辑 / 重新加载配置 | `Edit-Profile` / `Update-Profile` |
+| 检查依赖 | `Test-Environment` |
 
-| 脚本名称 | 适用目标 | 核心特性与主题定制 |
-| :--- | :--- | :--- |
-| [`Install-PowerShell7.ps1`](file:///c:/XMWJJ/powershelldome/Install-PowerShell7.ps1) | **PowerShell 7 (pwsh)** | 自动配置 Scoop 仓库与工具链（含 yazi 目录穿梭）、JetBrainsMono NF 字体、PSReadLine/Terminal-Icons 插件；**交互提示选择【1】每次启动随机主题 (120+ 离线主题池，回车默认)、【2】固定主题 (Catppuccin Mocha，极速秒开)、【3】Starship 赛博朋克主题**。 |
-| [`Install-WinPowerShell51.ps1`](file:///c:/XMWJJ/powershelldome/Install-WinPowerShell51.ps1) | **Windows PowerShell 5.1** (系统内置) | 专为 Win 10/11 内置 PowerShell 及 Win 8.1 优化；**强制启用 UTF-8 解决中文乱码**；**默认配置丰富随机主题（可选 -Theme Starship 赛博朋克主题）**；现代化别名与历史搜索。 |
-| [`Install-Cmd.ps1`](file:///c:/XMWJJ/powershelldome/Install-Cmd.ps1) | **CMD (命令提示符)** | 自动安装 Clink、Starship、Eza、Bat；**固定 Starship 赛博朋克霓虹主题**；**65001 UTF-8 与完整 Unix/Git Doskey 别名**；通过当前用户注册表 AutoRun 挂载，无需管理员权限，支持 `-Uninstall` 干净卸载。 |
-| [`Install-NuShell.ps1`](file:///c:/XMWJJ/powershelldome/Install-NuShell.ps1) | **NuShell (nu)** | 自动安装 NuShell 及配套工具；**配置 `env.nu` UTF-8 中文环境**；**自动挂载 Starship 赛博朋克提示符与 Zoxide 目录快跳**；配置 Fastfetch 启动横幅与 Unix/Git 常用别名；自动注册 Windows Terminal 配置项。 |
-| [`Install-MSYS2.ps1`](file:///c:/XMWJJ/powershelldome/Install-MSYS2.ps1) | **MSYS2 (bash)** | 定位或自动安装 MSYS2；**配置 `MSYS2_PATH_TYPE=inherit` 继承 Windows 本机环境变量**，可在 MSYS2 中直接调用 Windows 原生安装的工具；配置 `~/.bashrc` 强制 UTF-8、Starship 提示符、Fastfetch 横幅与别名；**自动检查并向 Windows Terminal 注册配置项（支持 `-Msys2InstallPath`）**。 |
-| [`Install-Fonts.ps1`](file:///c:/XMWJJ/powershelldome/Install-Fonts.ps1) | **离线字体独立安装** | **从项目内 `fonts/` 目录极速安装 48 款 JetBrainsMono Nerd Font (NFM/NF/NFP)**，直接复制到系统字体库并自动注册生效，广播 WM_FONTCHANGE 即刻免重启识别，零网络依赖。支持 `-AllUsers` 系统级安装。 |
-| [`Install-All.ps1`](file:///c:/XMWJJ/powershelldome/Install-All.ps1) | **全终端总装** | 一键按序安装配置上述终端环境，支持 `-IncludeNuShell`、`-IncludeMSYS2` 或 `-All` 安装全部 5 种终端。 |
+CMD 的 `cat` 等是 Doskey 宏，NuShell 和 MSYS2 使用自身配置生成的别名，作用域与依赖均可能不同。不要用 PowerShell 的快捷键表推断所有 Shell 的行为。
 
-#### 包管理器容错降级与自愈机制（Choco ➜ WinGet ➜ Scoop ➜ CDN 直连）
-脚本内置通用容错函数 `Install-AppWithChocoWingetFallback` 与自愈控制：
-1. **已就绪检测**：优先检查命令是否已经在 PATH 或对应路径中就绪，避免重复下载；
-2. **第一梯队 (Chocolatey)**：若检测到系统已安装 `choco`，执行安装；若发生失败，**自动重试 2 次**；
-3. **第二梯队 (WinGet 自动配置与安装)**：若未检测到 `choco` 或 2 次尝试均失败，自动进入 WinGet 流程：
-   - 自动检测并补全 `winget.exe` 路径（含 `WindowsApps` 检索）；
-   - **自动检查与配置 WinGet 软件源仓库**：若源异常或为空，自动执行 `winget source reset --force` 与 `winget source update` 修复并同步官方仓库源；
-   - 执行静默安装 `winget install --id ... --exact --silent`；
-4. **第三梯队 (Scoop 终极保底与镜像自愈)**：若 WinGet 仍不可用，自动调用 Scoop 仓库进行保底安装：
-   - 支持网络断流自愈、空 bucket 破损自动识别修复与高速镜像自动重试；
-   - 兼容 `scoop list` 零应用时的流 6 与状态码 1 退出逻辑；
-5. **第四梯队 (字体 CDN 直连下载兜底)**：字体包通过高速镜像直链下载并注册到当前用户字体库，确保 Windows Terminal 零字体缺失弹窗；
-6. **环境自愈**：全自动配置 `RemoteSigned` 策略并批量执行 `Unblock-File` 解除 Mark of the Web 锁定。
+Terminal 宿主快捷键由 `settings.json` 决定：`Ctrl+Shift+T` 新建标签、`Ctrl+Shift+W` 关闭窗格、`Alt+Shift+D` 复制拆分、`Alt+Shift+Minus` 水平拆分、`Alt+Shift+Plus` 垂直拆分、`Ctrl+Shift+F` 查找、`Ctrl+Shift+P` 命令面板、`Alt+方向键` 切换窗格焦点。宿主快捷键和 Shell 内快捷键是两层配置。
 
-#### 运行方式：
+## 常见问题
 
-```powershell
-# 1. 独立安装 PowerShell 7（带主题选择提示，可选随机或固定）：
-pwsh -File .\Install-PowerShell7.ps1
+### 找不到 pwsh、nu 或 MSYS2
 
-# 2. 独立安装 Windows PowerShell 5.1（固定 Starship 极速主题）：
-powershell.exe -File .\Install-WinPowerShell51.ps1
+默认总装不包含 NuShell/MSYS2。需要时运行对应安装器或总装 `-All`。确认程序已安装、PATH 已刷新，并新开终端。MSYS2 非默认目录传 `-Msys2InstallPath`。PS7 安装器的完整模板应用会尝试隐藏不可用入口；原样配置部署不做同样检查，因此不能只凭菜单存在就断定 Shell 已安装。
 
-# 3. 独立安装 CMD（固定 Starship 赛博朋克主题 + Clink + 别名）：
-pwsh -File .\Install-Cmd.ps1
+### 为什么没有 Windows Terminal
 
-# 4. 独立安装 NuShell（Starship 提示符 + Fastfetch + 别名）：
-pwsh -File .\Install-NuShell.ps1
+本项目配置终端与 Shell，但不负责安装 Windows Terminal 宿主。可按 [Windows Terminal 官方安装说明](https://learn.microsoft.com/en-us/windows/terminal/install)安装适用于系统的版本；不要把 Windows PowerShell 5.1 语法兼容理解为 Windows Terminal 支持 Windows 8.1。
 
-# 5. 独立安装 MSYS2（继承 Windows PATH + Starship + UTF-8）：
-pwsh -File .\Install-MSYS2.ps1
+### 中文显示乱码或图标方块
 
-# 6. 一键安装全部终端环境（包含 NuShell 与 MSYS2）：
-pwsh -File .\Install-All.ps1 -All
-```
+先区分字体缺字、文件编码与进程输出编码。检查终端实际选中的 Nerd Font、源文件是否采用正确编码、`[Console]::OutputEncoding.CodePage` 与 `$OutputEncoding.CodePage` 是否为 65001。Profile 设置 UTF-8 不会自动修复已经保存为错误编码的文件或所有第三方程序的输出。PS5.1 读取含中文脚本时还需留意 UTF-8 BOM。
 
----
+### 启动慢
 
-### 4. 自动全量备份与一键无损回退
+先在真实交互新进程中测量，按需关闭 BANNER、TIPS、ICONS，保持 VFOX 默认关闭。`Enable-Vfox` 可在需要时手动执行；最小模式会跳过更多初始化。截图中的耗时和历史审计数据都不是当前环境的保证。测量命令与范围见[开发文档](开发与部署文档.md#性能测量)。
 
-#### 自动前置备份机制
-当运行任何安装脚本（`Install-PowerShell7.ps1`、`Install-WinPowerShell51.ps1`、`Install-Cmd.ps1` 或 `Install-All.ps1`）时，**脚本会在修改任何系统文件前，自动抓取当前系统所有终端配置（PS7 Profile、WinPS5.1 Profile、Windows Terminal 设置、CMD AutoRun 注册表、Clink 脚本、Starship 配置）**，保存在 `backups/install-backup-时间戳/` 目录中，并记录 SHA-256 校验清单。
+### 执行策略阻止运行
 
-#### 一键无损回退 (`Restore-All.ps1`)
-在任意终端（PowerShell 7 或系统内置 Windows PowerShell 5.1）中运行：
-```powershell
-# 1. 仅预览回退操作（Dry Run，不改动任何文件）：
-pwsh -File .\Restore-All.ps1 -WhatIf
-# 或在 Windows PowerShell 5.1 / Win 8.1 下运行：
-powershell.exe -File .\Restore-All.ps1 -WhatIf
+先核实脚本来源，再按[部署文档](部署与回退.md)的进程级命令执行。安装器可能另外调整当前用户策略；组织强制策略应按组织要求处理。不要为消除提示递归解除整个用户目录的下载标记。
 
-# 2. 真正执行一键回退（自动读取最新安装备份还原原状，并清理新生成的文件与注册表项）：
-pwsh -File .\Restore-All.ps1
-# 或：
-powershell.exe -File .\Restore-All.ps1
-```
-> **提示**：原脚本 `.\Restore-TerminalConfiguration.ps1` 亦已同步升级为兼容委托模式。
+### 更新工具后出现兼容问题
 
----
-
-## 📦 工具链维护建议
-
-本机已由 Scoop 与 WinGet 安装了常用工具：
-- **Scoop 管理**：`fastfetch`、`oh-my-posh`、`eza`、`bat`、`starship`、`vfox`、`nu`、`7zip`、`curl`、`jq`、`sudo`、`ripgrep`。
-- **WinGet 管理**：`zoxide`、`fzf`、`yazi`、`clink`。
-- **PowerShell 模块**：`PSReadLine`、`PSFzf`、`Terminal-Icons`。
-
-更新所有工具：
-```powershell
-scoop update *
-Update-Module PSReadLine, PSFzf, Terminal-Icons
-```
-
+先确认工具由哪个包管理器安装，再单独更新需要的工具。模块安装器使用固定版本列表；若调整版本，同步检查 PS7 / PS5.1、生成配置与交互行为，避免把 `Update-Module` 后的新版本当作已经过项目验证。

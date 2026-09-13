@@ -1,3 +1,4 @@
+﻿# 隔离验证快照、白名单、救援恢复和进程超时；安装与注册表边界均模拟。
 $ErrorActionPreference='Stop'
 $projectRoot=Split-Path -Parent $PSScriptRoot
 $testRoot=Join-Path $PSScriptRoot ('tmp-safety-'+[guid]::NewGuid().ToString('N'))
@@ -16,7 +17,7 @@ try {
     $env:TERMINAL_SETUP_DOCUMENTS=Join-Path $testRoot 'redirected-documents'
     [IO.Directory]::CreateDirectory($testRoot) | Out-Null
     . (Join-Path $projectRoot 'scripts/TerminalSetupCommon.ps1')
-    # No test writes to HKCU: these two boundaries emulate registry values and their types.
+    # 不写真实 HKCU；以下两个边界模拟注册表值及其类型。
     $script:registry=@{}
     function Get-TerminalRegistryState($Spec) {
         $id="$($Spec.Key)|$($Spec.Name)"
@@ -70,7 +71,7 @@ try {
     Assert-Fails { Restore-TerminalSnapshot -Directory $snapshot -Msys2InstallPath $msys } '*Invalid snapshot registry*'
     Set-TerminalText $manifestPath $originalManifest
 
-    # Atomic replacement must leave original bytes intact while a reader denies write/delete sharing.
+    # 读取者禁止共享写入或删除时，替换失败也必须保持目标原始字节不变。
     $locked=Join-Path $testRoot 'locked.txt'
     Set-TerminalText $locked 'keep me'
     $handle=[IO.File]::Open($locked,'Open','Read','Read')
@@ -80,7 +81,7 @@ try {
     Set-TerminalText $locked ''
     Assert ((Get-Item $locked).Length -eq 0) 'Empty file replacement failed.'
 
-    # Test real package failure propagation with all external installation boundaries replaced.
+    # 替换外部安装边界，验证真实公共函数能向调用者传递安装失败。
     & {
         function Initialize-SetupEnvironment {}
         function Ensure-ScoopBuckets {}
@@ -111,7 +112,7 @@ try {
     $count=Ensure-OhMyPoshThemes
     Assert ($count -gt 0) 'Theme copying still fails.'
 
-    # Minimal and noninteractive loads must not discover tools, import modules or spawn children.
+    # 最小及非交互加载不能进入工具发现、模块导入或子进程初始化阶段。
     $env:POWERSHELL_PROFILE_MINIMAL='1'
     . (Join-Path $projectRoot 'Microsoft.PowerShell_profile.ps1')
     & {

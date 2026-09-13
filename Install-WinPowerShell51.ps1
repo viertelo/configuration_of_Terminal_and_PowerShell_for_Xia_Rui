@@ -30,7 +30,7 @@ if ($PSVersionTable.PSVersion.Major -lt 5) {
     Write-Warning "若运行在 Windows 8.1 上，请先安装 Windows Management Framework 5.1 (WMF 5.1) 以获得最佳支持。"
 }
 
-# 2. 全自动前置备份：捕获当前所有终端配置，支持一键无损回退
+# 2. 为 Windows PowerShell 5.1 与共享配置创建快照，软件与字体不在恢复范围内。
 if (-not $SkipBackup) { $null=Backup-AllTerminalConfigurations -Components @('WinPS51','Shared') }
 
 # 3. 检查并准备 Scoop 包管理器

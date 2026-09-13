@@ -29,7 +29,7 @@ if ($Uninstall) {
     return
 }
 
-# 2. 全自动前置备份：捕获当前所有终端配置，支持一键无损回退
+# 2. 为 CMD 与共享配置创建快照，后续卸载配置不会卸载软件包。
 if (-not $SkipBackup) { $null=Backup-AllTerminalConfigurations -Components @('Cmd','Shared') }
 
 # 3. 检查并准备 Scoop 包管理器

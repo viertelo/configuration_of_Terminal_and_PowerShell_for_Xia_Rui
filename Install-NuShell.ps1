@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
     NuShell (nu) 现代化终端环境一键安装与美化配置脚本
 .DESCRIPTION

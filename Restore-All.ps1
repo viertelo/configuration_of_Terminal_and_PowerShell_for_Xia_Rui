@@ -1,10 +1,10 @@
-<#
+﻿<#
 .SYNOPSIS
     全终端配置一键回退与灾难恢复脚本
 .DESCRIPTION
     读取最近一次安装前自动保存的快照，或用户显式指定的备份目录，
-    实现对全套终端配置（PowerShell 7、Windows PowerShell 5.1、Windows Terminal、CMD、NuShell、MSYS2）的原子无损回退。
-    支持 -Components 按组件颗粒度恢复，支持 -WhatIf 预演模式。
+    恢复清单包含的受管文件与注册表值，恢复前保存救援副本；不卸载软件或字体。
+    manifest 格式支持 -Components 按组件恢复；旧 deployment 格式只恢复两文件。支持 -WhatIf 预演。
 #>
 [CmdletBinding(SupportsShouldProcess = $true)]
 param(

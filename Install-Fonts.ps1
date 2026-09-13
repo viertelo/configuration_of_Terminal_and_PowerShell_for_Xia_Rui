@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
     JetBrainsMono Nerd Font 本地离线极速安装与注册脚本
 .DESCRIPTION

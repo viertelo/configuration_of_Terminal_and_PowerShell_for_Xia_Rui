@@ -1,3 +1,4 @@
+﻿# 在临时仓库生成各 Shell 配置，检查部署恢复路由；外部安装与注册表写入均模拟。
 $ErrorActionPreference='Stop'
 $projectRoot=Split-Path -Parent $PSScriptRoot
 $fixture=Join-Path $PSScriptRoot ('tmp-generated-'+[guid]::NewGuid().ToString('N'))
@@ -18,7 +19,7 @@ try {
     $env:TERMINAL_SETUP_DOCUMENTS=Join-Path $fixture 'Documents'
     $env:POWERSHELL_PROFILE_MINIMAL='1'
     . (Join-Path $projectRoot 'scripts/TerminalState.ps1')
-    # Fixture copy uses real file transactions but mocks every installation and registry boundary.
+    # 临时副本使用真实文件写入逻辑，但模拟所有安装和注册表边界。
     $mocks=@'
 function Initialize-SetupEnvironment {}
 function Ensure-ScoopInstalled {}
@@ -37,7 +38,7 @@ function Get-Command {
 '@
     $common=Join-Path $repo 'scripts/TerminalSetupCommon.ps1'
     Set-TerminalText $common ([IO.File]::ReadAllText($common)+"`n"+$mocks) -Bom
-    # The CMD fallback is disabled in fixtures to avoid injecting a real Clink process.
+    # 测试中禁用 CMD 回退查找，避免向真实进程注入 Clink。
     $cmdInstaller=Join-Path $repo 'cmd/Install-CmdConfiguration.ps1'
     $cmdText=[IO.File]::ReadAllText($cmdInstaller).Replace('if (-not $clink) {','if ($false) {')
     Set-TerminalText $cmdInstaller $cmdText -Bom
@@ -61,7 +62,7 @@ function Get-Command {
         Assert ($LASTEXITCODE -eq 0 -and $count -eq '4') 'Generated NuShell aliases are not visible.'
     } else { Write-Host 'SKIP: NuShell executable is not installed.' }
 
-    # Actual deployment entry and rollback routing: older installation pointer must not win.
+    # 执行真实部署和恢复入口，旧安装指针不能覆盖本次部署指针的选择。
     $live=Join-Path $env:TERMINAL_SETUP_DOCUMENTS 'PowerShell/Microsoft.PowerShell_profile.ps1'
     Set-TerminalText $live 'before deployment'
     & (Join-Path $repo 'Deploy-TerminalConfiguration.ps1') -SkipCmd
@@ -75,7 +76,7 @@ function Get-Command {
     $cmdProfile=Join-Path $cmdDir 'autorun.cmd'
     $deployed=[IO.File]::ReadAllText($cmdProfile)
     Assert ($deployed -notmatch '__CLINK_INIT__|__FASTFETCH_INIT__') 'Unexpanded CMD placeholder.'
-    # Files named like startup tools cannot be invoked from the launch directory.
+    # 启动目录中与工具同名的文件不能被初始化流程执行。
     $attack=Join-Path $fixture 'untrusted-directory'
     [IO.Directory]::CreateDirectory($attack) | Out-Null
     foreach ($name in @('fastfetch','starship','chcp','doskey','findstr','where')) { Set-TerminalText (Join-Path $attack "$name.cmd") '@echo ATTACK_EXECUTED' }
@@ -88,14 +89,14 @@ function Get-Command {
         $output=@(& $env:ComSpec /d /c "call `"$cmdProfile`"")
         Assert ($output.Count -eq 0) 'Noninteractive CMD startup produced output.'
     } finally { Pop-Location }
-    # Restore-All reimports the fixture state helper: replace registry boundaries there as well.
+    # Restore-All 会重新导入临时状态库，因此也替换该副本的注册表边界。
     $state=Join-Path $repo 'scripts/TerminalState.ps1'
     $regMocks=@'
 function Get-TerminalRegistryState($Spec) { [pscustomobject]@{Key=$Spec.Key;Name=$Spec.Name;Existed=$false;Value=$null;Kind='String'} }
 function Set-TerminalRegistryState($State) {}
 '@
     Set-TerminalText $state ([IO.File]::ReadAllText($state)+"`n"+$regMocks) -Bom
-    # Exercise custom MSYS2 roots through the public default restore entry, without trusting manifest paths.
+    # 通过默认恢复入口验证自定义 MSYS2 根目录，同时保持清单目标路径白名单约束。
     & {
         . $common
         $msys=Join-Path $fixture 'custom-msys'

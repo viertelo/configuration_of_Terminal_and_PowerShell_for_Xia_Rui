@@ -1,3 +1,5 @@
+﻿# 在真实交互终端的新进程中测量 Profile 主体，不含进程创建和首次提示符绘制。
+# 重定向会触发最小路径，因此同时记录输入输出状态供判读。
 param([ValidateSet('defaults','minimal','full')][string]$Mode='defaults', [int]$Iteration=1)
 $env:TERM='xterm-256color'
 $env:POWERSHELL_THEME_MODE='fixed'

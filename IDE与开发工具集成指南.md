@@ -1,74 +1,38 @@
-# Windows 现代化终端与 IDE / 编辑器集成配置指南
+# IDE 与开发工具集成指南
 
-本指南详细说明如何将本项目美化配置好的终端（**PowerShell 7 / Starship / NuShell / CMD**）深度集成到 **Visual Studio Code (VS Code)** 与 **JetBrains 全家桶 (IntelliJ IDEA, PyCharm, WebStorm, GoLand, CLion, Android Studio)** 中，实现无缝编码、无乱码中文、极速命令行与炫彩提示符。
+本项目安装器配置 Shell 和 Windows Terminal，不会自动修改 VS Code、Cursor 或 JetBrains 的用户设置。IDE 终端需要单独选择 Shell 和 Nerd Font；Terminal 的壁纸、亚克力和快捷键不会直接复制到 IDE 中。安装入口见 [README](README.md)。
 
----
+## 准备与适用范围
 
-## 目录
-- [一、核心前置知识：为什么 IDE 终端图标会乱码？](#一核心前置知识为什么-ide-终端图标会乱码)
-- [二、Visual Studio Code (VS Code / Cursor) 深度配置](#二visual-studio-code-vs-code--cursor-深度配置)
-  - [1. 快捷一键配置 (settings.json)](#1-快捷一键配置-settingsjson)
-  - [2. 图形界面配置步骤](#2-图形界面配置步骤)
-  - [3. 配置多终端 Profile (PowerShell 7 / NuShell / CMD / MSYS2)](#3-配置多终端-profile-powershell-7--nushell--cmd--msys2)
-- [三、JetBrains 全家桶 (IDEA / WebStorm / PyCharm 等) 配置](#三jetbrains-全家桶-idea--webstorm--pycharm-等-配置)
-  - [1. 设置默认 Shell 路径](#1-设置默认-shell-路径)
-  - [2. 必须配置：设置终端独立字体](#2-必须配置设置终端独立字体)
-  - [3. 配置环境变量与字符集](#3-配置环境变量与字符集)
-- [四、常见问题排查与避坑指南](#四常见问题排查与避坑指南)
+先确认目标 Shell 可以独立打开，字体已经安装。在 PowerShell 中用 `Get-Command pwsh`、`Get-Command nu` 查看实际程序位置。等宽终端优先选择已安装的 `JetBrainsMono NFM`，不使用比例版本 NFP 作为默认。缺少字体时从仓库运行 `powershell.exe -NoProfile -File .\Install-Fonts.ps1`，然后重启 IDE。
 
----
+本文针对本机 Windows 集成终端。WSL、SSH、Dev Container、远程 IDE 的 Shell、配置和字体来源可能不同，不能直接套用本机 Windows 路径。
 
-## 一、核心前置知识：为什么 IDE 终端图标会乱码？
+## VS Code / Cursor
 
-IDE（如 VS Code 或 IDEA）的内置终端默认使用的是**编辑器的代码字体**（或系统默认等宽字体），而 Starship 提示符、Git 分支标记、文件夹图标（`Terminal-Icons` / `eza`）依赖于 **Nerd Font 图标字符集**。
+VS Code 支持通过 `terminal.integrated.profiles.windows` 配置 Shell，并用 `terminal.integrated.defaultProfile.windows` 选择默认项；字体使用 `terminal.integrated.fontFamily`。参见 [VS Code 终端配置](https://code.visualstudio.com/docs/terminal/profiles)与[外观说明](https://code.visualstudio.com/docs/terminal/appearance)。Cursor 可在兼容的设置项中采用相同思路，具体界面以所用版本为准。
 
-> [!IMPORTANT]
-> **无论使用哪款 IDE，集成的首要核心条件都是：将 IDE 的【内置终端字体 (Terminal Font)】单独设置为已安装的 `JetBrainsMono NF` 或 `JetBrainsMono NFP`，否则图标必然显示为小方框或问号。**
+打开命令面板，选择 `Preferences: Open User Settings (JSON)`。将下面属性合并进已有设置对象，不要用示例覆盖整个用户配置。按需保留已安装 Shell 的条目；JSONC 支持注释。
 
-本项目各安装脚本已为您自动安装了 `JetBrainsMono-NF` 字体，您只需在 IDE 中按以下指引启用即可。
-
----
-
-## 二、Visual Studio Code (VS Code / Cursor) 深度配置
-
-### 1. 快捷一键配置 (settings.json)
-
-在 VS Code 中按下快捷键 <kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>P</kbd>，输入：
-```text
-Preferences: Open User Settings (JSON)
-```
-打开用户的 `settings.json`，在最外层大括号内补充或替换以下配置项：
-
-```json
+```jsonc
 {
-  // =========================================================================
-  // 1. 终端字体配置 (关键：保证 Starship 赛博朋克提示符与文件图标正常渲染)
-  // =========================================================================
-  "terminal.integrated.fontFamily": "'JetBrainsMono NFM', 'JetBrainsMono NF', 'JetBrainsMono NFP', 'JetBrainsMono Nerd Font', 'Cascadia Code', monospace",
+  // Nerd Font 负责图标；备用字体不保证提供全部图标。
+  "terminal.integrated.fontFamily": "'JetBrainsMono NFM', 'JetBrainsMono NF', monospace",
   "terminal.integrated.fontSize": 14,
-  "terminal.integrated.fontWeight": "normal",
-
-  // =========================================================================
-  // 2. 默认使用 PowerShell 7 现代化终端
-  // =========================================================================
   "terminal.integrated.defaultProfile.windows": "PowerShell 7",
-
-  // =========================================================================
-  // 3. 多终端配置方案 (支持在 VS Code 下拉菜单自由切换)
-  // =========================================================================
   "terminal.integrated.profiles.windows": {
     "PowerShell 7": {
-      "source": "PowerShell",
+      "path": "pwsh.exe",
       "args": ["-NoLogo"],
       "icon": "terminal-powershell"
     },
     "Windows PowerShell 5.1": {
-      "path": "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
+      "path": "${env:windir}\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
       "args": ["-NoLogo"],
       "icon": "terminal-powershell"
     },
-    "CMD (Clink & Starship)": {
-      "path": "C:\\Windows\\System32\\cmd.exe",
+    "CMD (Clink)": {
+      "path": "${env:windir}\\System32\\cmd.exe",
       "icon": "terminal-cmd"
     },
     "NuShell": {
@@ -81,101 +45,53 @@ Preferences: Open User Settings (JSON)
       "icon": "terminal-bash"
     }
   },
-
-  // =========================================================================
-  // 4. 控制台与平滑渲染优化
-  // =========================================================================
-  "terminal.integrated.gpuAcceleration": "on",
-  "terminal.integrated.cursorBlinking": true,
-  "terminal.integrated.cursorStyle": "line",
-  "terminal.integrated.smoothScrolling": true,
+  // 新终端隐藏横幅和提示卡，保留提示符与其他功能。
   "terminal.integrated.env.windows": {
-    "PYTHONIOENCODING": "utf-8",
-    "POWERSHELL_PROFILE_BANNER": "1" // 若想在 IDE 中保持极简清爽，可改为 "0" 隐藏 Fastfetch
+    "POWERSHELL_PROFILE_BANNER": "0",
+    "POWERSHELL_PROFILE_TIPS": "0"
   }
 }
 ```
 
-### 2. 图形界面配置步骤
+`pwsh.exe`、`nu.exe` 需要在 IDE 继承的 PATH 中；否则将 `path` 改为 `Get-Command` 返回的完整路径。MSYS2 路径也需按实际安装目录修改。新建终端验证，而不是只清空原终端。不要添加 `-NoProfile` 到正常使用的 PowerShell 配置，否则本项目的 Profile 不会加载。
 
-如果您习惯使用图形界面操作：
-1. 打开 VS Code 设置：快捷键 <kbd>Ctrl</kbd> + <kbd>,</kbd>；
-2. 在顶部搜索框输入：`terminal.integrated.fontFamily`；
-3. 将字体名称修改填入：`'JetBrainsMono NFP', 'JetBrainsMono Nerd Font'`；
-4. 搜索：`terminal.integrated.defaultProfile: Windows`；
-5. 在下拉菜单中选择：`PowerShell 7`（或 `pwsh`）；
-6. 按下 <kbd>Ctrl</kbd> + <kbd>`</kbd> 新建终端，即可查看炫彩效果！
+VS Code PowerShell 扩展的专用控制台可能使用 `Microsoft.VSCode_profile.ps1`，与普通集成终端的 ConsoleHost Profile 不同。本项目默认部署后者，不保证扩展控制台自动获得相同 UI；源码还会对非 ConsoleHost 环境跳过提示符集成。
 
----
+## JetBrains IDE
 
-## 三、JetBrains 全家桶 (IDEA / WebStorm / PyCharm 等) 配置
+在 Settings → Tools → Terminal 中设置 Shell path、Environment variables，并在 Font Settings 选择终端字体。当前 IntelliJ IDEA 文档列出了专用字体区域；旧版本也可能继承 Editor → Color Scheme → Console Font。不要假定所有版本均有同名编码选项。参见 [JetBrains 终端设置](https://www.jetbrains.com/help/idea/settings-tools-terminal.html)。
 
-适用于 IntelliJ IDEA、PyCharm、WebStorm、GoLand、CLion、Rider、DataGrip、Android Studio 等全部 JetBrains 旗下 IDE。
+| 设置 | 示例 |
+| --- | --- |
+| Shell path，PowerShell 7 | `pwsh.exe`，或实际路径，例如 `"C:\Program Files\PowerShell\7\pwsh.exe" -NoLogo` |
+| Shell path，Windows PowerShell | `powershell.exe -NoLogo` |
+| Shell path，其他 Shell | 已安装的 `cmd.exe` 或 `nu.exe` |
+| Font | 已安装的 `JetBrainsMono NFM` |
+| 字号 | 可从 13 或 14 开始调整 |
+| Environment variables | `POWERSHELL_PROFILE_BANNER=0`、`POWERSHELL_PROFILE_TIPS=0`（可选） |
 
-### 1. 设置默认 Shell 路径
+字体或环境变量修改后新建终端；如果 IDE 尚未识别刚安装的字体 / PATH，退出并重开 IDE。不同产品和 Terminal 引擎的选项可能不同，以对应版本帮助为准。
 
-1. 打开设置面板：快捷键 <kbd>Ctrl</kbd> + <kbd>Alt</kbd> + <kbd>S</kbd>（或菜单栏 `File` -> `Settings`）；
-2. 导航至：**Tools (工具)** -> **Terminal (终端)**；
-3. 在右侧找到 **Shell path (Shell 路径)**：
-   - **推荐设置为 PowerShell 7**：
-     - 若通过 Scoop 安装，输入：`pwsh.exe` 或 `C:\Users\<您的用户名>\scoop\shims\pwsh.exe`；
-     - 若通过 WinGet/MSI 安装，输入：`C:\Program Files\PowerShell\7\pwsh.exe`；
-   - 若想使用 NuShell，可填入：`nu.exe`；
-   - 若想使用 CMD 现代化环境，填入：`cmd.exe`。
+## 排障
 
-### 2. 必须配置：设置终端独立字体
+| 现象 | 核对方法 |
+| --- | --- |
+| 图标是方块 | 核对实际选中的字体是否包含 Nerd Font 图标，以及是否已重启 IDE |
+| 中文乱码 | 区分字体、文件编码和进程输出；Profile 设置 UTF-8 不会重新编码已有文件 |
+| 外部终端正常，IDE 无提示符 | 检查 Shell 路径、是否带 `-NoProfile`、宿主名称、最小模式和环境变量 |
+| 新终端仍显示横幅 | 在 IDE 终端环境设置中同时关闭 BANNER 和 TIPS；当前 Shell 的 `$env:` 修改不一定影响 IDE 创建的新进程 |
+| 快捷键被 IDE 截获 | 使用 `fv`、`fif <关键词>`、`zi`、`lg`，或修改 IDE 的终端按键配置 |
+| 启动慢 | 先关闭横幅 / 提示卡 / 图标逐项定位，vfox 默认保持关闭；没有统一的毫秒级速度保证 |
 
-JetBrains IDE 允许终端拥有独立的字体配置（不影响代码编辑器的字体）：
-1. 在设置面板左侧导航至：**Editor (编辑器)** -> **Color Scheme (配色方案)** -> **Console Font (控制台字体)**；
-   *(在 2023+ 新版中亦可查看 `Tools` -> `Terminal` 下的字体选项)*；
-2. 勾选 **Use console font instead of the default (使用控制台字体替代默认字体)**；
-3. **Font (字体)** 下拉列表选择：`JetBrainsMono Nerd Font` 或 `JetBrainsMono NF`；
-4. **Size (字号)** 推荐：`13` 或 `14`，Line spacing (行高) 保持 `1.1` 或 `1.2`；
-5. 点击 **Apply (应用)**。
+在普通交互 PowerShell 中可检查：
 
-### 3. 配置环境变量与字符集
+```powershell
+$Host.Name
+$PROFILE
+$PSVersionTable.PSVersion
+[Console]::OutputEncoding.CodePage
+$OutputEncoding.CodePage
+Test-Environment
+```
 
-在 **Tools (工具)** -> **Terminal (终端)** 页面中：
-- 勾选 **Override IDE encoding (覆盖 IDE 编码)** 并确保选择为 **UTF-8**；
-- 在 **Environment variables (环境变量)** 中点击右侧图标添加：
-  - 名称：`PYTHONIOENCODING`，值：`utf-8`
-  - *(可选)* 若希望在 IDE 终端里隐藏 Fastfetch 字符画以获得最大可视空间，添加变量：
-    - 名称：`POWERSHELL_PROFILE_BANNER`，值：`0`
-  - *(可选)* 若追求 IDE 内置终端极致秒开（~241ms），可直接开启极简模式：
-    - 名称：`POWERSHELL_PROFILE_MINIMAL`，值：`1`
-
----
-
-## 四、常见问题排查与避坑指南
-
-### 1. 图标仍然是方块或问号？
-- **原因**：字体名称拼写不一致，或者 IDE 使用了非等宽图标字体。
-- **解决**：在字体列表中务必寻找名称带有 `Nerd Font`、`NF` 或 `NFP` 的字体项。不要选择不带后缀的普通 `JetBrains Mono`。
-
-### 2. IDE 打开终端时出现乱码或中文问号？
-- **原因**：IDE 默认控制台编码为 GBK (CodePage 936)。
-- **解决**：本项目在 `Microsoft.PowerShell_profile.ps1` 和 `Install-WinPowerShell51.ps1` 中均自动注入了强制 UTF-8 修复代码：
-  ```powershell
-  $OutputEncoding = [System.Text.UTF8Encoding]::new($false)
-  [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
-  ```
-  在 IDE 终端中输入 `chcp`，确保输出为 `65001`。
-
-### 3. 在 IDE 中启动终端觉得太宽，想关掉 Fastfetch 字符画或极速秒开？
-- **快捷方法**：
-  在您的项目环境或者终端中，只需执行：
-  ```powershell
-  $env:POWERSHELL_PROFILE_BANNER = '0'
-  # 或开启极简秒开模式 (~241ms)：
-  $env:POWERSHELL_PROFILE_MINIMAL = '1'
-  ```
-  或在 IDE 的 Terminal 环境变量设置中配置 `POWERSHELL_PROFILE_BANNER=0`，下次打开终端即可享受零横幅极速秒开模式。
-
-### 4. 快捷键与 IDE 查找快捷键冲突？
-- 本终端套件提供了快捷文件搜索 `fv`（模糊查文件 + 预览 + Neovim 打开）和全局关键字流式秒搜 `fif <关键词>`（Ripgrep + FZF 管道流式实时高亮）：
-  - 在内置终端中直接输入 `fv` 或 `fif <搜索词>` 即可直接激活，无需按 Ctrl+F / Ctrl+R，完美避免与 IDE 全局搜索热键冲突！
-
-### 5. 在 IDE 终端中使用 Lazygit 极速版本管理
-- 随时在 IDE 底部终端中输入 `lg`、`lzg`，或直接按下 `Ctrl+G`，即可在 IDE 内全屏呼出 Lazygit 进行交互式暂存、提交、分支合并与解决冲突；
-- 按 `q` 键退出 Lazygit，终端立即恢复到正常的命令行提示符，无缝衔接代码编写，完全无需切换离开 IDE 窗口。
-
+`POWERSHELL_PROFILE_MINIMAL=1` 会跳过提示符、模块和 UI 初始化，适合排障，但不会卸载当前进程已加载的模块。用新进程验证；恢复正常体验时移除该设置再新开终端。更多开关见[终端美化与使用](windows终端美化相关.md)。

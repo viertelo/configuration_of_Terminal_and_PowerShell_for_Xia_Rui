@@ -1,11 +1,11 @@
-<#
+﻿<#
 .SYNOPSIS
     生产环境终端配置原子同步与部署脚本
 .DESCRIPTION
     1. 前置静默运行 tests/Verify-Configuration.ps1 静态回归校验，语法或约束不通过则阻断部署；
-    2. 自动生成当前生产终端配置的前置救援快照 (.deployment-path)，保障一键无损回退；
+    2. 生成 PS7、Terminal 及可选 CMD 的前置快照，并更新 .deployment-path；
     3. 校验目标文件哈希一致性，防止并发覆写污染；
-    4. 原子部署 Windows Terminal settings.json、PowerShell 7 Profile 及 CMD 现代化配置。
+    4. 以单文件替换方式部署配置；末尾 Fastfetch 写入当前未纳入 Shared 快照。
 .PARAMETER SkipCmd
     是否跳过 CMD Clink 与 Starship 相关配置的部署。
 #>

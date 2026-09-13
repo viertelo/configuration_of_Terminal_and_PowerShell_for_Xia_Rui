@@ -1,6 +1,6 @@
-﻿# Shared state, backup and restore primitives. Compatible with Windows PowerShell 5.1.
+﻿# 终端配置的目标清册、快照与恢复基础函数，兼容 Windows PowerShell 5.1。
 function Get-TerminalDocumentsPath {
-    # Explicit override supports portable profiles and isolated verification fixtures.
+    # 显式覆盖用于便携配置和隔离测试，否则读取支持重定向的系统 Documents 路径。
     if ($env:TERMINAL_SETUP_DOCUMENTS) { return [IO.Path]::GetFullPath($env:TERMINAL_SETUP_DOCUMENTS) }
     $documents = [Environment]::GetFolderPath('MyDocuments')
     if (-not $documents) { $documents = Join-Path $env:USERPROFILE 'Documents' }
@@ -16,6 +16,7 @@ function Resolve-TerminalMsysRoot([string]$Path) {
 }
 
 function Get-TerminalTargets {
+    # 只返回选定组件的文件目标；注册表目标由 Get-TerminalRegistrySpecs 单独维护。
     param([string]$Msys2InstallPath, [string[]]$Components = @('All'), [string]$CmdTargetDir)
     $documents = Get-TerminalDocumentsPath
     $msys = Resolve-TerminalMsysRoot $Msys2InstallPath
@@ -62,6 +63,7 @@ function Get-TerminalHash([string]$Path) {
 }
 
 function Set-TerminalBytes {
+    # 同目录临时文件用于原子替换已有目标，不构成多文件或注册表事务。
     param([string]$Path, [AllowEmptyCollection()][byte[]]$Bytes)
     $Path = [IO.Path]::GetFullPath($Path)
     Assert-TerminalRegularFile $Path
@@ -127,6 +129,7 @@ function Set-TerminalRegistryState($State) {
 }
 
 function New-TerminalSnapshot {
+    # 保存原始字节、存在状态及注册表类型，原先不存在的目标也须纳入清单。
     param([string]$Directory, [object[]]$Targets, [object[]]$RegistrySpecs = @())
     if (Test-Path -LiteralPath $Directory) { throw "Snapshot already exists: $Directory" }
     [IO.Directory]::CreateDirectory($Directory) | Out-Null
@@ -148,6 +151,7 @@ function New-TerminalSnapshot {
 }
 
 function Read-TerminalSnapshot {
+    # 恢复前校验完整清单与哈希，导入快照不能自行扩大目标白名单。
     param([string]$Directory, [string]$Msys2InstallPath, [string]$CmdTargetDir)
     $Directory=(Resolve-Path -LiteralPath $Directory -ErrorAction Stop).ProviderPath
     $manifestPath=Join-Path $Directory 'manifest.json'
@@ -188,13 +192,14 @@ function Read-TerminalSnapshot {
 
 function Save-TerminalInstallContext {
     param([string]$Directory, [string]$Msys2InstallPath)
-    # Local installation state lives outside snapshots. Never learn allowed roots from an imported manifest.
+    # 本机上下文独立于快照保存，不能从导入清单信任任意安装根目录。
     $projectRoot=Split-Path -Parent $PSScriptRoot
     $context=@{Version=1;BackupDirectory=[IO.Path]::GetFullPath($Directory);Msys2InstallPath=$Msys2InstallPath}
     Set-TerminalText (Join-Path $projectRoot '.last-install-context.json') ($context | ConvertTo-Json)
 }
 
 function Add-TerminalMsysSnapshot {
+    # MSYS2 实际根目录确定后、配置写入前，将其原始状态追加到总装父快照。
     param([string]$Directory, [string]$Msys2InstallPath)
     $manifest=Read-TerminalSnapshot -Directory $Directory -Msys2InstallPath $Msys2InstallPath
     if (@($manifest.Files | Where-Object Name -eq 'msys2_bashrc').Count) { throw 'MSYS2 was already captured.' }
@@ -215,7 +220,7 @@ function Add-TerminalMsysSnapshot {
 
 function Resolve-TerminalTool {
     param([string]$Name)
-    # Resolve only absolute PATH entries under established installation roots; never the working directory.
+    # 仅从已知安装根目录下的绝对 PATH 项查找程序，跳过当前目录以防同名程序劫持。
     $roots=@($env:ProgramFiles, ${env:ProgramFiles(x86)}, $env:SystemRoot, "$env:USERPROFILE\scoop", $env:SCOOP,
              "$env:LOCALAPPDATA\Programs", "$env:LOCALAPPDATA\Microsoft\WinGet", "$env:LOCALAPPDATA\clink", $env:ChocolateyInstall)
     foreach ($directory in ($env:PATH -split ';')) {
@@ -238,6 +243,7 @@ function Resolve-TerminalTool {
 }
 
 function Restore-TerminalSnapshot {
+    # 预检后先保存当前内容为救援快照，再逐项恢复并记录完成或失败状态。
     [CmdletBinding(SupportsShouldProcess=$true)]
     param([string]$Directory, [string]$Msys2InstallPath, [string]$CmdTargetDir, [string[]]$Components=@('All'))
     $manifest=Read-TerminalSnapshot -Directory $Directory -Msys2InstallPath $Msys2InstallPath -CmdTargetDir $CmdTargetDir
@@ -266,7 +272,7 @@ function Restore-TerminalSnapshot {
         foreach ($entry in $registry) { Set-TerminalRegistryState $entry }
         Set-TerminalText $journal (@{Status='Completed';Source=$Directory;Rescue=$rescue} | ConvertTo-Json)
     } catch {
-        # Durable rescue remains usable even after interruption; do not overwrite concurrent edits automatically.
+        # 失败后保留救援目录，不自动覆盖并发编辑；此时部分目标可能已经恢复。
         Set-TerminalText $journal (@{Status='Failed';Source=$Directory;Rescue=$rescue;Error="$($_.Exception.Message)"} | ConvertTo-Json)
         throw "Restore incomplete. Current content was saved to $rescue. $($_.Exception.Message)"
     }

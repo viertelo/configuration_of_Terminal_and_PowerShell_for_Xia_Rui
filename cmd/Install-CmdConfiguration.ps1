@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
     CMD (命令提示符) 运行环境与 AutoRun 注册表深度配置脚本
 .DESCRIPTION

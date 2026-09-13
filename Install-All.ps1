@@ -9,7 +9,7 @@
     可选/扩展执行：
     4. Install-NuShell.ps1 (NuShell 现代化终端环境与美化配置，-IncludeNuShell 或 -All)
     5. Install-MSYS2.ps1 (MSYS2 现代化开发终端环境与美化配置，-IncludeMSYS2 或 -All)
-    兼容 Windows 11、Windows 10 及 Windows 8.1。
+    主要用于 Windows 10/11；兼顾 PowerShell 5.1 语法，上游依赖支持范围需单独确认。
 #>
 [CmdletBinding()]
 param(
@@ -46,14 +46,14 @@ try {
     Set-ItemProperty -Path $regPath -Name 'ExecutionPolicy' -Value 'RemoteSigned' -Force -ErrorAction SilentlyContinue
 } catch {}
 
-# 全自动前置统合备份：捕获当前所有终端配置，支持一键无损回退
+# 为选定组件创建配置快照；前面的执行策略修改不在此快照范围内。
 $components=@('Shared')
 if (-not $SkipPowerShell7) { $components += @('PowerShell7','Terminal') }
 if (-not $SkipWinPowerShell51) { $components += 'WinPS51' }
 if (-not $SkipCmd) { $components += 'Cmd' }
 if ($IncludeNuShell -or $All) { $components += @('NuShell','Terminal') }
 if ($IncludeMSYS2 -or $All) { $components += 'Terminal' }
-# MSYS2 captures its resolved root immediately before modifying its configuration.
+# MSYS2 在实际根目录确定后、修改配置前追加对应快照。
 $backup = Backup-AllTerminalConfigurations -Components $components
 
 
@@ -109,7 +109,7 @@ Write-Host "============================================================" -Foreg
 Write-Host "[提示] 您可以立即打开各个终端进行体验：" -ForegroundColor Cyan
 Write-Host "  - Windows Terminal (PowerShell 7 / CMD / Windows PowerShell / NuShell / MSYS2)" -ForegroundColor Gray
 Write-Host "  - 原生 cmd.exe (已自动加载 UTF-8、Doskey 别名与 Starship 赛博朋克提示符)" -ForegroundColor Gray
-Write-Host "  - 原生 powershell.exe (已自动修复编码并加载极速固定主题)" -ForegroundColor Gray
+Write-Host "  - 原生 powershell.exe (已配置 UTF-8 与默认随机主题)" -ForegroundColor Gray
 if ($IncludeNuShell -or $All) {
     Write-Host "  - NuShell (nu.exe: 已配置 Starship 提示符、Fastfetch 横幅与 Unix 别名)" -ForegroundColor Gray
 }

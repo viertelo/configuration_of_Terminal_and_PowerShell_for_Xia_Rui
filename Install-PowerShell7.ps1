@@ -4,7 +4,7 @@
 .DESCRIPTION
     自动配置 Scoop 与所需软件依赖、PowerShell 模块、Nerd Font 字体，
     并支持交互选择【固定主题 (Catppuccin Mocha)】或【每次启动随机主题】或【Starship 赛博朋克主题】。
-    全面兼容 Windows 11、Windows 10 及 Windows 8.1。
+    主要用于 Windows 10/11；脚本语法兼容不代表所有最新版依赖支持旧系统。
 #>
 [CmdletBinding()]
 param(
@@ -26,7 +26,7 @@ Write-Host "============================================================" -Foreg
 # 1. 基础运行环境与 TLS 准备
 Initialize-SetupEnvironment
 
-# 2. 全自动前置备份：捕获当前所有终端配置，支持一键无损回退
+# 2. 为 PowerShell 7、Terminal 和共享配置创建快照，软件与字体不在恢复范围内。
 if (-not $SkipBackup) { $null=Backup-AllTerminalConfigurations -Components @('PowerShell7','Terminal','Shared') }
 
 # 3. 检查并安装 Scoop 与必要仓库

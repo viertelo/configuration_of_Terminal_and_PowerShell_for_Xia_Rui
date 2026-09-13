@@ -1,4 +1,4 @@
-﻿# Exercises installer entry points with file fixtures; no real packages, registry or user profiles are changed.
+﻿# 使用临时文件运行安装入口，不改变真实软件包、注册表或用户 Profile。
 $ErrorActionPreference='Stop'
 $projectRoot=Split-Path -Parent $PSScriptRoot
 $fixture=Join-Path $PSScriptRoot ('tmp-installer-integration-'+[guid]::NewGuid().ToString('N'))
@@ -20,7 +20,7 @@ try {
     $env:TERMINAL_SETUP_DOCUMENTS=Join-Path $fixture 'Documents'
     . (Join-Path $projectRoot 'scripts/TerminalSetupCommon.ps1')
 
-    # Run the real package fallback and Scoop verification. Only package-manager boundaries are mocked.
+    # 运行真实包管理回退和 Scoop 校验逻辑，仅模拟包管理器执行边界。
     & {
         function Initialize-SetupEnvironment {}
         function Ensure-ScoopInstalled {}
@@ -60,7 +60,7 @@ try {
     Set-TerminalText $wt ($settings | ConvertTo-Json -Depth 100)
     $originalProfiles=$settings.profiles.list | ConvertTo-Json -Depth 30 -Compress
 
-    # The copied installer keeps real snapshot, text-generation and Terminal-registration logic.
+    # 安装器副本保留真实快照、配置生成和 Terminal 入口注册逻辑。
     $mocks=@'
 function Initialize-SetupEnvironment {}
 function Ensure-ScoopBuckets {}

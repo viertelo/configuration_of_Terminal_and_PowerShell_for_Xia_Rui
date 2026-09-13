@@ -22,7 +22,7 @@ Copy-Item -LiteralPath $liveWt -Destination (Join-Path $deployDir 'Terminal-stab
 Copy-Item -LiteralPath $stagedPs -Destination (Join-Path $deployDir 'PowerShell7-profile.after.ps1') -Force
 Copy-Item -LiteralPath $stagedWt -Destination (Join-Path $deployDir 'Terminal-stable.after.json') -Force
 
-# 3. 将管理脚本拷贝入快照目录，确保该快照具备独立自包含回退能力
+# 3. 快照只保存数据；恢复使用仓库当前管理脚本，不复制或执行历史管理代码。
 
 # 4. 计算哈希并生成原子清单 deployment.json
 $manifest = @{

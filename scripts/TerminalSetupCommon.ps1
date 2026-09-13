@@ -1,7 +1,7 @@
-. (Join-Path $PSScriptRoot 'TerminalState.ps1')
+﻿. (Join-Path $PSScriptRoot 'TerminalState.ps1')
 
 # ============================================================================
-# Terminal Setup Common Library (跨操作系统 Win11/10/8.1 兼容性与环境准备)
+# 终端安装公共库：依赖准备与配置生成；上游工具支持范围取决于具体版本。
 # ============================================================================
 
 function Initialize-SetupEnvironment {
@@ -24,7 +24,7 @@ function Initialize-SetupEnvironment {
     }
     Write-Host "[*] 检测到操作系统: $osName" -ForegroundColor Cyan
 
-    # Do not persistently change execution policy or repository trust.
+    # 本函数不修改持久执行策略或仓库信任；各安装入口另有策略处理。
 
 }
 
@@ -320,7 +320,7 @@ function Install-PSModulesIfMissing {
     }
     $versions=@{PSReadLine='2.4.5';'Terminal-Icons'='0.11.0';PSFzf='2.7.3'}
 
-    # Keep the user's PSGallery trust policy and publisher checks intact.
+    # 保留 PSGallery 信任策略及发布者检查；下方另对所选模块解除下载标记。
     $gallery=Get-PSRepository -Name PSGallery -ErrorAction Stop
     if ($gallery.SourceLocation.TrimEnd('/') -ne 'https://www.powershellgallery.com/api/v2') { throw 'PSGallery source URL is not the official endpoint.' }
     foreach ($mod in $Modules) {
@@ -725,7 +725,7 @@ function Backup-AllTerminalConfigurations {
         $msysRoot=if (@($targets | Where-Object Name -eq 'msys2_bashrc').Count) { Resolve-TerminalMsysRoot $Msys2InstallPath } else { $null }
         Save-TerminalInstallContext -Directory $backupDir -Msys2InstallPath $msysRoot
     }
-    # Each top-level operation owns its snapshot; nested installers explicitly skip backup.
+    # 顶层操作维护自己的快照指针；子安装器按参数复用父快照，CMD 独立指针另行维护。
     Set-TerminalText (Join-Path $projectRoot $PointerName) $backupDir
     Write-Host "Snapshot: $backupDir"
     return $backupDir

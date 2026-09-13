@@ -1,6 +1,6 @@
-# Dot-source this file from $PROFILE. No downloads or package installs at startup.
+﻿# 由 $PROFILE 点调用此文件；项目启动逻辑不下载或安装软件包。
 
-# Scoop normally manages PATH itself. Repair a missing entry without duplicating it.
+# Scoop 通常自行管理 PATH；这里只补充缺失的 shims 项，避免重复添加。
 $profileScoopRoot = if ($env:SCOOP) { $env:SCOOP } else { [IO.Path]::Combine($env:USERPROFILE, 'scoop') }
 $profileShims = [IO.Path]::Combine($profileScoopRoot, 'shims')
 $profilePathEntries = @($env:PATH -split ';' | ForEach-Object { $_.Trim().TrimEnd('\', '/') })
@@ -9,7 +9,7 @@ if ([IO.Directory]::Exists($profileShims) -and
     $env:PATH = if ($env:PATH) { "$env:PATH;$profileShims" } else { $profileShims }
 }
 
-# Match native command input/output without spawning chcp.exe.
+# 统一原生命令输入输出编码，无需启动 chcp.exe。
 $OutputEncoding = [System.Text.UTF8Encoding]::new($false)
 try {
     [Console]::InputEncoding = $OutputEncoding
@@ -18,7 +18,7 @@ try {
     Write-Verbose "Console encoding unavailable in this host: $_"
 }
 
-# Keep dir/ls/cat as PowerShell object-producing commands. Use ll/la/lt/lg/catc for display.
+# 保留 dir/ls/cat 的 PowerShell 对象语义，使用 ll/la/lt/catc 获得增强显示。
 function ll {
     if (Get-Command eza -CommandType Application -ErrorAction SilentlyContinue) {
         eza --long --icons=auto --group-directories-first --color=auto @args
@@ -50,7 +50,7 @@ function catc {
     } else { Get-Content @args }
 }
 
-# Quick directory upward navigation
+# 快速切换到上级目录。
 function ..   { Set-Location .. }
 function ...  { Set-Location ../.. }
 function .... { Set-Location ../../.. }
@@ -76,7 +76,7 @@ function gdiff { git diff @args }
 function gundo { git reset --soft HEAD~1 @args }
 Set-Alias grep Select-String
 
-# Developer & System utilities
+# 开发与系统便利函数。
 function c { if (Get-Command code -CommandType Application -ErrorAction SilentlyContinue) { & code @args } else { Write-Warning "VS Code (code) 未安装或未加入 PATH。" } }
 function mkcd {
     param([Parameter(Mandatory = $true)][string]$Path)
@@ -114,7 +114,7 @@ function reload {
     Write-Host "[OK] PowerShell Profile 配置已热重载生效！" -ForegroundColor Green
 }
 
-# Yazi file manager integration with automatic directory changing upon exit
+# 启动 Yazi，退出后读取其记录并同步当前目录。
 function y {
     if (-not (Get-Command yazi -CommandType Application -ErrorAction SilentlyContinue)) { Write-Warning 'yazi is not installed.'; return }
     $tmp=[IO.Path]::GetTempFileName()
@@ -129,7 +129,7 @@ Set-Alias lzg lazygit
 function lg { if (Get-Command lazygit -CommandType Application -ErrorAction SilentlyContinue) { & lazygit @args } else { llg @args } }
 function v { & nvim @args }
 
-# Zoxide interactive query alias
+# 通过 zoxide 交互选择历史目录。
 function zi {
     if (Get-Command zoxide -CommandType Application -ErrorAction SilentlyContinue) {
         $dest = & zoxide query -i @args
@@ -141,7 +141,7 @@ function zi {
     }
 }
 
-# Fuzzy Find & Edit file with Neovim and bat preview
+# 使用 fzf 选择文件、bat 预览，再用 Neovim 编辑。
 function fv {
     if (-not (Get-Command fzf -CommandType Application -ErrorAction SilentlyContinue)) {
         Write-Warning "fzf 未安装，无法执行模糊选文件。请运行: scoop install fzf"
@@ -171,7 +171,7 @@ function fv {
     }
 }
 
-# Find In Files (ripgrep + fzf + bat + nvim interactive full-text search)
+# 使用 ripgrep 流式全文检索，配合 fzf 选择、bat 预览与 nvim 编辑。
 function fif {
     param([string]$Query = '')
     if ([string]::IsNullOrWhiteSpace($Query)) { Write-Warning 'Usage: fif <search text>'; return }
@@ -230,7 +230,7 @@ function Show-SystemInfo {
     } else { Write-Warning 'Fastfetch is not installed. Run: scoop install fastfetch' }
 }
 
-# Helper functions for CJK-aware width formatting
+# 按中日韩字符显示宽度辅助对齐提示卡。
 function Get-DisplayWidth([string]$text) {
     $width = 0
     foreach ($ch in $text.ToCharArray()) {
@@ -252,8 +252,8 @@ function Pad-DisplayRight([string]$text, [int]$totalWidth) {
     return $text + (' ' * ($totalWidth - $currentWidth))
 }
 
-# Feature status card: displays active CLI tool integrations with real checks and warnings
-# Set $env:POWERSHELL_PROFILE_TIPS = '0' to disable.
+# 展示工具与快捷命令提示；各项按自身条件检查，不代替完整环境验证。
+# 设置 $env:POWERSHELL_PROFILE_TIPS = '0' 可关闭提示卡及主题名称输出。
 function Show-FeatureTips {
     if ($env:POWERSHELL_PROFILE_MINIMAL -eq '1' -or $env:POWERSHELL_PROFILE_TIPS -eq '0') { return }
 
@@ -478,7 +478,7 @@ function Show-FeatureTips {
     Write-Host ""
 }
 
-# Preserved from the active profile during deployment.
+# 保留历史 Profile 中的兼容辅助函数；部署并不会自动合并用户的后续编辑。
 function Test-Tool { param([string]$CommandName) [bool](Get-Command $CommandName -ErrorAction SilentlyContinue) }
 function gpull { git pull @args }
 
@@ -510,7 +510,7 @@ function mkcd {
 
 function Find-LargeFiles {
     param([string]$Path='.', [ValidateRange(1,10000)][int]$TopN=10)
-    # Only retain N objects. Traversal still visits all files; selection costs O(files * N).
+    # 内存只保留 N 个对象；仍遍历所有文件，筛选成本为 O(文件数 * N)。
     $largest=[System.Collections.Generic.List[System.IO.FileInfo]]::new()
     Get-ChildItem -LiteralPath $Path -Recurse -File -ErrorAction SilentlyContinue | ForEach-Object {
         $index=0
@@ -605,10 +605,10 @@ function Test-Environment {
     Write-Host "`n💡 提示：" -ForegroundColor Cyan
     Write-Host "  - 使用 'scoop install <工具名>' 安装命令行工具" -ForegroundColor Gray
     Write-Host "  - 使用 'Install-Module <模块名>' 安装 PowerShell 模块" -ForegroundColor Gray
-    Write-Host "  - 查看完整文档：PowerShell配置文档.md`n" -ForegroundColor Gray
+    Write-Host "  - 查看完整文档：windows终端美化相关.md`n" -ForegroundColor Gray
 }
 
-# Capture generated initialization code without unbounded native waits or pipe deadlocks.
+# 限制原生初始化进程等待时间，异步读取输出和错误以避免管道阻塞。
 function Invoke-ProfileProcess {
     param([string]$Name, [string[]]$Arguments=@(), [ValidateRange(50,60000)][int]$TimeoutMs=1500)
     $command=Get-Command $Name -CommandType Application -ErrorAction SilentlyContinue | Select-Object -First 1
@@ -644,7 +644,7 @@ function ConvertTo-BoundedVfoxScript {
     $tokens=$null; $errors=$null
     $ast=[Management.Automation.Language.Parser]::ParseInput($Text,[ref]$tokens,[ref]$errors)
     if ($errors) { throw 'vfox generated invalid PowerShell initialization.' }
-    # vfox emits native calls inside its module, prompt hook and exit handler. Bound these too.
+    # 对 vfox 生成的模块、提示符钩子和退出处理器内可静态识别的调用也施加超时。
     $calls=@($ast.FindAll({ param($node)
         if ($node -isnot [Management.Automation.Language.CommandAst]) { return $false }
         $name=$node.GetCommandName()
@@ -682,7 +682,7 @@ function Enable-Vfox {
 }
 function Enable-TerminalIcons { Import-Module Terminal-Icons -ErrorAction Stop }
 
-# Redirected jobs and -NonInteractive sessions should not load prompt/UI integrations.
+# 重定向任务和 -NonInteractive 会话跳过提示符与 UI 集成。
 $profileInteractive = $Host.Name -eq 'ConsoleHost' -and $env:TERM -ne 'dumb'
 try {
     $profileInteractive = $profileInteractive -and
@@ -695,7 +695,7 @@ if ([Environment]::GetCommandLineArgs() | Where-Object {
 }
 if ($env:POWERSHELL_PROFILE_MINIMAL -eq '1' -or -not $profileInteractive) { return }
 
-# Integrate fd and Catppuccin Mocha theme with live bat/eza preview into FZF
+# 配置 fzf 的 fd 搜索、Catppuccin 配色与 bat/eza 预览。
 if (Get-Command fd -CommandType Application -ErrorAction SilentlyContinue) {
     $env:FZF_DEFAULT_COMMAND = 'fd --type f --hidden --exclude .git --exclude node_modules --exclude .venv'
     $env:FZF_ALT_C_COMMAND = 'fd --type d --hidden --exclude .git --exclude node_modules --exclude .venv'
@@ -720,7 +720,7 @@ if (Get-Command eza -CommandType Application -ErrorAction SilentlyContinue) {
 if (Get-Command nvim -CommandType Application -ErrorAction SilentlyContinue) { $env:EDITOR='nvim'; $env:VISUAL='nvim' }
 
 
-# Deterministic daily theme selection: no cache writes, and the same sorted library gives the same theme that day.
+# 每次交互加载从本地主题库随机抽取，不写主题选择缓存；连续启动可能选中同一主题。
 $profileThemeCandidates=@()
 $themesDir=[IO.Path]::Combine($env:USERPROFILE,'oh-my-posh-themes')
 if (-not [IO.Directory]::Exists($themesDir) -and $env:POSH_THEMES_PATH) { $themesDir=$env:POSH_THEMES_PATH }
@@ -742,7 +742,7 @@ if ($profileMode -eq 'starship' -or $env:POWERSHELL_POSH_THEME -eq 'starship') {
     foreach ($candidate in @($profileThemeCandidates | Select-Object -Unique)) {
         if (-not [IO.File]::Exists($candidate)) { continue }
         try {
-            # Reject malformed local JSON before invoking the prompt engine.
+            # 调用提示符引擎前检查本地 JSON，损坏的主题交给后续候选回退。
             $null=[IO.File]::ReadAllText($candidate) | ConvertFrom-Json -ErrorAction Stop
             $poshShell = if ($PSVersionTable.PSEdition -eq 'Core') { 'pwsh' } else { 'powershell' }
             $profileInit=Invoke-ProfileProcess oh-my-posh @('init',$poshShell,'--config',$candidate)
@@ -757,7 +757,7 @@ if ($profileMode -eq 'starship' -or $env:POWERSHELL_POSH_THEME -eq 'starship') {
     }
 }
 
-# Initialize after Oh My Posh so zoxide can hook the final prompt.
+# 提示符初始化后再加载 zoxide，使其钩子绑定到最终提示符。
 $profileZoxideReady = $false
 if (Get-Command zoxide -CommandType Application -ErrorAction SilentlyContinue) {
     try {
@@ -769,8 +769,8 @@ if (Get-Command zoxide -CommandType Application -ErrorAction SilentlyContinue) {
     } catch { Write-Warning "zoxide: $_" }
 }
 
-# Terminal-Icons adds rich icons to directory listings. Enabled by default for interactive sessions.
-# Set $env:POWERSHELL_PROFILE_ICONS = '0' to disable if ultra-fast startup is preferred.
+# 交互会话默认加载 Terminal-Icons，增强目录图标显示。
+# 设置 $env:POWERSHELL_PROFILE_ICONS = '0' 可跳过图标模块导入。
 if ($env:POWERSHELL_PROFILE_ICONS -ne '0') {
     Import-Module Terminal-Icons -ErrorAction SilentlyContinue
 }
@@ -824,11 +824,11 @@ if (Get-Module -ListAvailable PSReadLine) {
 }
 
 
-# Activate after final prompt setup, with a shorter generation budget than manual Enable-Vfox.
+# 在最终提示符设置后按需自动激活，生成预算比手动 Enable-Vfox 更短。
 if ($env:POWERSHELL_PROFILE_VFOX -eq '1') { Enable-Vfox -TimeoutMs 3000 }
 
-# Interactive startup banner: displays Fastfetch ASCII art and hardware telemetry.
-# Set $env:POWERSHELL_PROFILE_BANNER = '0' to disable if a silent prompt is preferred.
+# 交互启动横幅展示 Fastfetch 字符画与系统信息。
+# 设置 $env:POWERSHELL_PROFILE_BANNER = '0' 关闭横幅，提示卡由 TIPS 单独控制。
 if ($env:POWERSHELL_PROFILE_BANNER -ne '0') {
     Show-SystemInfo
 }
